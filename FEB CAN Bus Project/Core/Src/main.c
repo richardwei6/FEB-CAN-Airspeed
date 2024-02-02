@@ -46,6 +46,8 @@ CAN_HandleTypeDef hcan1;
 I2C_HandleTypeDef hi2c1;
 
 /* USER CODE BEGIN PV */
+uint8_t slaveAddr = 0x40;
+
 uint32_t canTxMailbox;
 
 uint8_t dataBuffer[8];
@@ -58,15 +60,10 @@ static void MX_GPIO_Init(void);
 static void MX_CAN1_Init(void);
 static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
-void CANSend(uint8_t data[], uint8_t dlc);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void CANSend(uint8_t data[], uint8_t dlc){
-
-
-}
 /* USER CODE END 0 */
 
 /**
@@ -115,7 +112,7 @@ int main(void)
 	// -- receive i2c data from MS4525DO
 
 	// receive with 8 bytes, 1000 ms timeout with MS4525DO address at 0x40 [replace with actual address]
-	HAL_I2C_Master_Receive(&hi2c1, 0x40, (uint8_t*)dataBuffer, 8, 1000);
+	HAL_I2C_Master_Receive(&hi2c1, slaveAddr, (uint8_t*)dataBuffer, 8, 1000);
 	HAL_Delay(100);
 
     /* USER CODE END WHILE */
