@@ -42,21 +42,30 @@
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan1;
 
-/* USER CODE BEGIN PV */
+I2C_HandleTypeDef hi2c1;
 
+/* USER CODE BEGIN PV */
+uint32_t canTxMailbox;
+
+uint8_t dataBuffer[8];
+const uint8_t dlc = 8;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_CAN1_Init(void);
+static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
-
+void CANSend(uint8_t data[], uint8_t dlc);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void CANSend(uint8_t data[], uint8_t dlc){
 
+
+}
 /* USER CODE END 0 */
 
 /**
@@ -76,6 +85,8 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
+
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -88,6 +99,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CAN1_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -96,9 +108,33 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	// -- reset data buffer
+	memset(dataBuffer, 0x00, dlc);
+
+	// -- receive i2c data from MS4525DO
+
+	// receive with 8 bytes, 1000 ms timeout with MS4525DO address at 0x40 [replace with actual address]
+	HAL_I2C_Master_Receive(&hi2c1, 0x40, (uint8_t*)dataBuffer, 8, 1000);
+	HAL_Delay(100);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	// --- send data over CAN
+
+	CAN_TxHeaderTypeDef header;
+
+	header.IDE = CAN_ID_STD; // standard CAN message size (11 bits)
+	header.StdId = 0x14; // CAN ID = 20
+	header.RTR = CAN_RTR_DATA; // RTR bit to send a frame
+	header.DLC = dlc; // data length code
+
+	if (HAL_CAN_AddTxMessage(&hcan1, &header, dataBuffer, &canTxMailbox) != HAL_OK){
+		printf("ERROR: unable to send CAN message");
+	}
+
+	HAL_Delay(100);
   }
   /* USER CODE END 3 */
 }
@@ -182,6 +218,40 @@ static void MX_CAN1_Init(void)
 }
 
 /**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 100000;
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -193,6 +263,7 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
